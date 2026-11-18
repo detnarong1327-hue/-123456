@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Game UI Kit - ฟังก์ชันรายได้ A-Level</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for Graphing -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Fredoka & Prompt -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- MathJax for Beautiful Mathematical Equations -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        game: {
+                            purpleBg: '#6c5ce7',
+                            darkPurple: '#4834d4',
+                            lightPurple: '#a29bfe',
+                            limeGreen: '#4cd137',
+                            darkLime: '#44bd32',
+                            pink: '#e84393',
+                            cyan: '#00cec9',
+                            yellow: '#fbc531',
+                            cardBg: '#ffffff'
+                        }
+                    },
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'Prompt', 'sans-serif'],
+                        prompt: ['Prompt', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Prompt', 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #74b9ff 0%, #6c5ce7 40%, #4834d4 100%);
+            min-height: 100vh;
+        }
+
+        /* Game UI Chunky 3D Button Shadows */
+        .game-btn-green {
+            background: linear-gradient(180deg, #4cd137 0%, #44bd32 100%);
+            box-shadow: 0 6px 0 #2ed573, 0 10px 15px rgba(0, 0, 0, 0.25);
+            border: 3px solid #ffffff;
+            transition: all 0.1s ease;
+        }
+        .game-btn-green:active {
+            transform: translateY(5px);
+            box-shadow: 0 1px 0 #2ed573, 0 3px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .game-card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), inset 0 3px 0 rgba(255, 255, 255, 0.8);
+            border: 4px solid #ffffff;
+        }
+
+        .hud-pill {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 999px;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .bottom-nav-item {
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .bottom-nav-item.active {
+            transform: translateY(-8px) scale(1.05);
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #a29bfe; border-radius: 10px; }
+    </style>
+</head>
+<body class="text-slate-800 flex flex-col items-center justify-center p-2 sm:p-4 min-h-screen">
+
+    <!-- Mobile Screen Frame Container -->
+    <div class="w-full max-w-md bg-gradient-to-b from-[#8c7ae6] to-[#4834d4] rounded-[40px] shadow-2xl border-[6px] border-white/40 overflow-hidden flex flex-col h-[92vh] max-h-[860px] relative">
+        
+        <!-- TOP HUD BAR -->
+        <header class="p-4 flex justify-between items-center z-20 shrink-0">
+            <!-- Left Side Controls -->
+            <div class="flex items-center space-x-1.5">
+                <button onclick="toggleAudio()" id="sound-btn" class="w-9 h-9 rounded-full hud-pill text-white flex items-center justify-center hover:bg-white/20 transition" title="เปิด/ปิดเสียง">
+                    <i class="fa-solid fa-volume-high text-sm"></i>
+                </button>
+                <button onclick="switchTab('prompt')" class="w-9 h-9 rounded-full hud-pill text-white flex items-center justify-center hover:bg-white/20 transition" title="ตั้งค่า & Prompt AI">
+                    <i class="fa-solid fa-gear text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Center Badge -->
+            <div class="hud-pill px-4 py-1 flex items-center shadow-md">
+                <span class="text-white font-bold text-xs uppercase tracking-wider flex items-center gap-1 font-fredoka">
+                    <i class="fa-solid fa-crown text-amber-400 text-xs"></i> LEVEL 01
+                </span>
+            </div>
+
+            <!-- Right Side Coins & Gems Counters -->
+            <div class="flex items-center space-x-2">
+                <div class="hud-pill px-2.5 py-1 flex items-center space-x-1 text-white font-bold text-xs font-fredoka">
+                    <span>🪙</span>
+                    <span id="hud-coins" class="text-amber-300">1,250</span>
+                </div>
+                <div class="hud-pill px-2.5 py-1 flex items-center space-x-1 text-white font-bold text-xs font-fredoka">
+                    <span>💎</span>
+                    <span id="hud-gems" class="text-pink-300">250</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN SCROLLABLE CONTENT BODY -->
+        <div class="flex-1 overflow-y-auto px-4 pb-24 pt-1 space-y-4">
+
+            <!-- ================= TAB 1: VIRTUAL LAB ================= -->
+            <div id="tab-lab" class="space-y-4">
+                
+                <!-- Game Scenario Banner -->
+                <div class="bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-500 rounded-3xl p-4 border-4 border-white shadow-lg text-slate-900 relative overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <span class="bg-purple-900 text-white font-bold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider font-fredoka">
+                            🍞 MATH SIMULATOR
+                        </span>
+                        <span class="text-xs font-bold bg-white/70 px-2 py-0.5 rounded-full text-slate-800 font-fredoka">A-Level</span>
+                    </div>
+                    <h2 class="text-lg font-extrabold mt-1 text-purple-950">ร้านขนมกับฟังก์ชันรายได้</h2>
+                    <p class="text-xs text-slate-800 mt-1 font-normal leading-relaxed">
+                        ขนมราคา <strong>20 บาท</strong> ขายได้ <strong>100 ชิ้น</strong> และทุก ๆ 1 บาทที่แพงขึ้นจะขายได้น้อยลง 10 ชิ้น ลากสไลเดอร์เพื่อดูผลลัพธ์พาราโบลา!
+                    </p>
+                </div>
+
+                <!-- Interactive Controls Card -->
+                <div class="game-card p-4 space-y-3">
+                    <div class="flex justify-between items-center border-b pb-2 border-slate-100">
+                        <span class="font-bold text-sm text-purple-900 flex items-center gap-1.5">
+                            <i class="fa-solid fa-sliders text-cyan-500"></i> ปรับราคาขนม ($x$)
+                        </span>
+                        <span class="bg-purple-100 text-purple-800 font-extrabold text-sm px-3 py-1 rounded-full border border-purple-300" id="price-display">
+                            20 บาท
+                        </span>
+                    </div>
+
+                    <!-- Slider -->
+                    <div class="space-y-1">
+                        <input type="range" id="priceSlider" min="0" max="30" value="20" step="1"
+                            class="w-full h-4 bg-slate-200 rounded-full appearance-none cursor-pointer accent-purple-600 border-2 border-slate-300 shadow-inner">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-bold px-1">
+                            <span>0฿ (แจกฟรี)</span>
+                            <span>15฿ (รายได้สูงสุด)</span>
+                            <span>30฿ (ขายไม่ได้)</span>
+                        </div>
+                    </div>
+
+                    <!-- Real-time Math Outputs -->
+                    <div class="grid grid-cols-2 gap-2 text-center pt-1">
+                        <div class="bg-cyan-50 rounded-2xl p-2.5 border-2 border-cyan-200">
+                            <div class="text-[11px] text-cyan-800 font-semibold">จำนวนขายได้ $N(x)$</div>
+                            <div class="text-base font-extrabold text-cyan-600 mt-0.5" id="quantity-result">100 ชิ้น</div>
+                            <div class="text-[10px] text-cyan-700 font-mono mt-0.5" id="quantity-formula">300 - 10(20)</div>
+                        </div>
+
+                        <div class="bg-amber-50 rounded-2xl p-2.5 border-2 border-amber-200">
+                            <div class="text-[11px] text-amber-800 font-semibold">รายได้รวม $f(x)$</div>
+                            <div class="text-base font-extrabold text-amber-600 mt-0.5" id="revenue-result">2,000 ฿</div>
+                            <div class="text-[10px] text-amber-700 font-mono mt-0.5">$300x - 10x^2$</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Graph Card -->
+                <div class="game-card p-4 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-xs text-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-line text-purple-600"></i> กราฟรายได้แบบเรียลไทม์
+                        </span>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full font-fredoka">
+                            จุดยอด (15, 2250)
+                        </span>
+                    </div>
+
+                    <div class="relative w-full h-44">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Action Button to Switch to Quiz -->
+                <button onclick="switchTab('quiz')" class="w-full py-3.5 rounded-2xl game-btn-green text-white font-extrabold text-lg uppercase tracking-wide flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> เริ่มด่านตอบคำถาม QUIZ
+                </button>
+            </div>
+
+
+            <!-- ================= TAB 2: QUIZIZZ CHALLENGE ================= -->
+            <div id="tab-quiz" class="hidden space-y-4">
+                
+                <!-- Question Card -->
+                <div class="game-card p-4 space-y-3 relative">
+                    <div class="flex justify-between items-center">
+                        <span class="bg-purple-100 text-purple-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full font-fredoka">
+                            QUESTION 01/01
+                        </span>
+                        <!-- Timer Badge -->
+                        <div class="flex items-center space-x-1 text-xs font-bold text-rose-500 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 font-fredoka">
+                            <i class="fa-solid fa-stopwatch animate-pulse"></i>
+                            <span id="quiz-timer">60s</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-3 rounded-2xl border-2 border-slate-100 text-xs text-slate-800 leading-relaxed space-y-1.5">
+                        <p>
+                            ร้านขนมแห่งหนึ่งสังเกตว่า ปริมาณขนมที่ขายได้ในแต่ละวันขึ้นกับราคาของขนม หากขนมราคา <strong>20 บาท</strong> จะขายได้ <strong>100 ชิ้น</strong> และทุก ๆ <strong>หนึ่งบาทที่แพงขึ้นจะขายได้น้อยลง 10 ชิ้น</strong>
+                        </p>
+                        <p class="font-semibold text-purple-950">
+                            ให้ $f$ แทนฟังก์ชันรายได้จากการขายขนมของร้านนี้ในวันที่ขายขนมในราคา $x$ บาทต่อชิ้น จะได้ว่า $f(x)$ มีค่าเท่ากับข้อใดต่อไปนี้
+                        </p>
+                    </div>
+
+                    <!-- 5 Game Options -->
+                    <div class="space-y-2 pt-1" id="quiz-options">
+                        <button onclick="selectOption(1)" class="quiz-option-btn w-full p-3 rounded-xl border-2 border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 bg-white text-left text-xs font-bold text-slate-700 transition flex items-center justify-between">
+                            <span>1. &nbsp; $f(x) = 300 - 10x$</span>
+                            <i class="fa-regular fa-circle text-slate-300"></i>
+                        </button>
+                        <button onclick="selectOption(2)" class="quiz-option-btn w-full p-3 rounded-xl border-2 border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 bg-white text-left text-xs font-bold text-slate-700 transition flex items-center justify-between">
+                            <span>2. &nbsp; $f(x) = 6,000 - 200x$</span>
+                            <i class="fa-regular fa-circle text-slate-300"></i>
+                        </button>
+                        <button onclick="selectOption(3)" class="quiz-option-btn w-full p-3 rounded-xl border-2 border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 bg-white text-left text-xs font-bold text-slate-700 transition flex items-center justify-between">
+                            <span>3. &nbsp; $f(x) = 20x + 4x^2$</span>
+                            <i class="fa-regular fa-circle text-slate-300"></i>
+                        </button>
+                        <button onclick="selectOption(4)" class="quiz-option-btn w-full p-3 rounded-xl border-2 border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 bg-white text-left text-xs font-bold text-slate-700 transition flex items-center justify-between">
+                            <span>4. &nbsp; $f(x) = 100x - 20x^2$</span>
+                            <i class="fa-regular fa-circle text-slate-300"></i>
+                        </button>
+                        <button onclick="selectOption(5)" class="quiz-option-btn w-full p-3 rounded-xl border-2 border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 bg-white text-left text-xs font-bold text-slate-700 transition flex items-center justify-between">
+                            <span>5. &nbsp; $f(x) = 300x - 10x^2$</span>
+                            <i class="fa-regular fa-circle text-slate-300"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- ================= TAB 3: PROMPT & SETUP ================= -->
+            <div id="tab-prompt" class="hidden space-y-4">
+                
+                <!-- Prompt Card -->
+                <div class="game-card p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="font-extrabold text-sm text-purple-900 flex items-center gap-1.5 font-fredoka">
+                            <i class="fa-solid fa-robot text-pink-500"></i> AI PROMPT GENERATOR
+                        </span>
+                        <button onclick="copyPromptText()" class="px-3 py-1 bg-pink-500 hover:bg-pink-600 text-white font-bold text-[11px] rounded-full shadow transition flex items-center gap-1">
+                            <i class="fa-regular fa-copy"></i> <span id="copy-text">คัดลอก Prompt</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-900 text-cyan-300 p-3 rounded-2xl text-[11px] font-mono leading-relaxed max-h-52 overflow-y-auto border-2 border-slate-800 whitespace-pre-line" id="prompt-box">คุณคือผู้เชี่ยวชาญด้านการออกแบบเกมการศึกษาและการสร้างปฏิสัมพันธ์ในห้องเรียน (Gamification & EdTech Expert) 
+โปรดนำโจทย์ข้อสอบคณิตศาสตร์ ระดับมัธยมศึกษาตอนปลายจากข้อมูลด้านล่างนี้ มาออกแบบและแปลงเป็นชุดคำถามสำหรับเกม Quizizz ในรูปแบบปรนัย 5 ตัวเลือก พร้อมทั้งเพิ่มองค์ประกอบ "ห้องทดลองจำลองทางคณิตศาสตร์ (Math Virtual Lab)" เพื่อให้ผู้เรียนได้ทดลองเปลี่ยนค่าตัวแปรเพื่อสังเกตพฤติกรรมของฟังก์ชันก่อนตอบคำถาม
+
+ข้อมูลโจทย์:
+"ร้านขนมแห่งหนึ่งสังเกตว่า ปริมาณขนมที่ขายได้ในแต่ละวันขึ้นกับราคาของขนม หากขนมราคา 20 บาท จะขายได้ 100 ชิ้น และทุก ๆ หนึ่งบาทที่แพงขึ้นจะขายได้น้อยลง 10 ชิ้น ให้ f แทนฟังก์ชันรายได้จากการขายขนมของร้านนี้ในวันที่ขายขนมในราคา x บาทต่อชิ้น จะได้ว่า f(x) มีค่าเท่ากับข้อใดต่อไปนี้
+1. f(x) = 300 - 10x
+2. f(x) = 6,000 - 200x
+3. f(x) = 20x + 4x^2
+4. f(x) = 100x - 20x^2
+5. f(x) = 300x - 10x^2"
+
+ขอรูปแบบการจัดองค์ประกอบดังนี้:
+1. คำถามสำหรับใส่ใน Quizizz (พร้อมระบุตัวเลือก 5 ข้อ และระบุเฉลยที่ถูกต้อง)
+2. แนวคิดและคำอธิบายวิธีทำอย่างละเอียด (Step-by-step Explanation) ที่เข้าใจง่าย สำหรับแสดงหลังผู้เล่นตอบคำถาม
+3. ออกแบบฟีเจอร์ "ห้องทดลองเสมือน (Virtual Lab Sandbox)" ในรูปแบบคำอธิบายสั้น ๆ หรือมินิชาเลนจ์ก่อนกดตอบ
+4. ทริคการออกแบบเกม (Gamification Tips) เช่น การตั้งชื่อด่าน, การให้เวลาที่เหมาะสม, และการใช้ Power-up</div>
+                </div>
+
+                <!-- Teacher Setup Instructions -->
+                <div class="game-card p-4 space-y-3">
+                    <h3 class="font-bold text-sm text-slate-800 flex items-center gap-1.5 border-b pb-2 border-slate-100">
+                        <i class="fa-solid fa-list-check text-cyan-500"></i> ขั้นตอนนำไปสร้างบน Quizizz
+                    </h3>
+
+                    <div class="space-y-2 text-xs text-slate-600">
+                        <div class="flex gap-2.5 items-start">
+                            <span class="w-5 h-5 rounded-full bg-purple-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5 font-fredoka">1</span>
+                            <span>นำ Prompt ด้านบนไปใส่ใน ChatGPT หรือ AI อื่น ๆ เพื่อให้ได้ชุดข้อมูลสำหรับสร้างเกม</span>
+                        </div>
+                        <div class="flex gap-2.5 items-start">
+                            <span class="w-5 h-5 rounded-full bg-purple-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5 font-fredoka">2</span>
+                            <span>เปิดเว็บไซต์ Quizizz.com แล้วคลิกปุ่ม <strong>Create</strong> เพื่อสร้าง Quiz ใหม่</span>
+                        </div>
+                        <div class="flex gap-2.5 items-start">
+                            <span class="w-5 h-5 rounded-full bg-purple-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5 font-fredoka">3</span>
+                            <span>สร้างคำถามแบบปรนัย 5 ตัวเลือก นำโจทย์และตัวเลือกใส่ให้ครบถ้วน แล้วติ๊กเลือกเฉลยที่ <strong>ข้อ 5</strong></span>
+                        </div>
+                        <div class="flex gap-2.5 items-start">
+                            <span class="w-5 h-5 rounded-full bg-purple-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5 font-fredoka">4</span>
+                            <span>ตั้งเวลาตอบข้อละ 90 - 120 วินาที เพื่อให้นักเรียนได้มีเวลาคิดคำนวณและวิเคราะห์อย่างรอบคอบ</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BOTTOM NAVIGATION BAR -->
+        <nav class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t-4 border-white px-4 py-2 flex justify-around items-center z-20 shadow-2xl rounded-b-[34px]">
+            <!-- Lab Button -->
+            <button onclick="switchTab('lab')" id="nav-lab" class="bottom-nav-item active flex flex-col items-center group">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-b from-cyan-400 to-cyan-500 text-white flex items-center justify-center shadow-md border-2 border-white group-hover:scale-105 transition">
+                    <i class="fa-solid fa-flask text-lg"></i>
+                </div>
+                <span class="text-[10px] font-extrabold text-purple-900 mt-1 font-fredoka">LAB</span>
+            </button>
+
+            <!-- Quiz Button -->
+            <button onclick="switchTab('quiz')" id="nav-quiz" class="bottom-nav-item flex flex-col items-center group">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-b from-amber-400 to-yellow-500 text-white flex items-center justify-center shadow-md border-2 border-white group-hover:scale-105 transition">
+                    <i class="fa-solid fa-gamepad text-lg"></i>
+                </div>
+                <span class="text-[10px] font-extrabold text-purple-900 mt-1 font-fredoka">QUIZ</span>
+            </button>
+
+            <!-- Prompt Button -->
+            <button onclick="switchTab('prompt')" id="nav-prompt" class="bottom-nav-item flex flex-col items-center group">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-b from-pink-400 to-pink-500 text-white flex items-center justify-center shadow-md border-2 border-white group-hover:scale-105 transition">
+                    <i class="fa-solid fa-robot text-lg"></i>
+                </div>
+                <span class="text-[10px] font-extrabold text-purple-900 mt-1 font-fredoka">PROMPT</span>
+            </button>
+        </nav>
+
+        <!-- GAME RESULT MODAL POPUP -->
+        <div id="game-modal" class="hidden absolute inset-0 bg-purple-950/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="w-full max-w-xs bg-white rounded-3xl p-5 border-4 border-white shadow-2xl text-center space-y-3 relative transform transition-all scale-100">
+                
+                <!-- Ribbon Header -->
+                <div id="modal-ribbon" class="w-full py-2 rounded-2xl text-white font-extrabold text-base tracking-wider uppercase shadow-md -mt-8 border-2 border-white font-fredoka">
+                    LEVEL 01 PASSED!
+                </div>
+
+                <!-- Star Rating -->
+                <div class="flex justify-center space-x-2 text-2xl py-1" id="modal-stars">
+                    <i class="fa-solid fa-star text-amber-400 animate-bounce"></i>
+                    <i class="fa-solid fa-star text-amber-400 animate-bounce delay-100"></i>
+                    <i class="fa-solid fa-star text-amber-400 animate-bounce delay-200"></i>
+                </div>
+
+                <!-- Score Container -->
+                <div class="bg-purple-50 rounded-2xl p-2.5 border border-purple-100">
+                    <div class="text-[10px] text-purple-700 font-bold uppercase font-fredoka">SCORE</div>
+                    <div id="modal-score" class="text-2xl font-black text-purple-900 font-fredoka">1,250</div>
+                </div>
+
+                <!-- Detailed Explanation -->
+                <div class="bg-slate-50 p-3 rounded-xl text-left text-[11px] text-slate-600 space-y-1.5 max-h-44 overflow-y-auto border border-slate-200 leading-relaxed">
+                    <p class="font-bold text-purple-900 border-b pb-0.5">💡 แนวคิดและวิธีคิดอย่างละเอียด:</p>
+                    <p>1. <strong>หาจำนวนชิ้นที่ขายได้:</strong> ณ ราคา $x$ บาท (เพิ่มขึ้นจาก 20 บาทอยู่ $x - 20$ บาท)</p>
+                    <p class="pl-2 border-l-2 border-purple-400 text-[10px]">
+                        ขายได้น้อยลง $= 10(x - 20) = 10x - 200$ ชิ้น<br>
+                        ดังนั้น จะขายขนมได้ $= 100 - (10x - 200) = 300 - 10x$ ชิ้น
+                    </p>
+                    <p>2. <strong>หาฟังก์ชันรายได้ $f(x)$:</strong></p>
+                    <p class="pl-2 border-l-2 border-emerald-400 font-semibold text-emerald-800 text-[10px]">
+                        $f(x) = \text{ราคาต่อชิ้น} \times \text{จำนวนชิ้น}$<br>
+                        $f(x) = x(300 - 10x) = 300x - 10x^2$ (ตรงกับข้อ 5)
+                    </p>
+                </div>
+
+                <!-- Continue Button -->
+                <button onclick="closeModal()" class="w-full py-3 rounded-xl game-btn-green text-white font-extrabold text-base uppercase tracking-wider font-fredoka">
+                    CONTINUE
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Web Audio Synthesizer -->
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('sound-btn');
+            btn.innerHTML = soundEnabled 
+                ? '<i class="fa-solid fa-volume-high text-sm"></i>' 
+                : '<i class="fa-solid fa-volume-xmark text-sm"></i>';
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'correct') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.05);
+                }
+            } catch (e) {
+                console.warn('Audio playback skipped:', e);
+            }
+        }
+    </script>
+
+    <!-- App Logic Script -->
+    <script>
+        let revenueChart = null;
+        let quizTimerInterval = null;
+        let quizTimeLeft = 60;
+        let currentCoins = 1250;
+
+        function switchTab(tabName) {
+            playSound('click');
+            clearInterval(quizTimerInterval);
+
+            document.getElementById('tab-lab').classList.add('hidden');
+            document.getElementById('tab-quiz').classList.add('hidden');
+            document.getElementById('tab-prompt').classList.add('hidden');
+
+            document.getElementById('nav-lab').classList.remove('active');
+            document.getElementById('nav-quiz').classList.remove('active');
+            document.getElementById('nav-prompt').classList.remove('active');
+
+            if (tabName === 'lab') {
+                document.getElementById('tab-lab').classList.remove('hidden');
+                document.getElementById('nav-lab').classList.add('active');
+            } else if (tabName === 'quiz') {
+                document.getElementById('tab-quiz').classList.remove('hidden');
+                document.getElementById('nav-quiz').classList.add('active');
+                startQuizTimer();
+            } else if (tabName === 'prompt') {
+                document.getElementById('tab-prompt').classList.remove('hidden');
+                document.getElementById('nav-prompt').classList.add('active');
+            }
+        }
+
+        // Initialize Parabola Chart
+        function initChart() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            const xValues = [];
+            const yValues = [];
+            for (let x = 0; x <= 30; x += 1) {
+                xValues.push(x);
+                yValues.push(300 * x - 10 * x * x);
+            }
+
+            revenueChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: xValues,
+                    datasets: [
+                        {
+                            label: 'รายได้ f(x)',
+                            data: yValues,
+                            borderColor: '#8c7ae6',
+                            borderWidth: 3,
+                            backgroundColor: 'rgba(140, 122, 230, 0.15)',
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'จุดราคาปัจจุบัน',
+                            data: [{x: 20, y: 2000}],
+                            borderColor: '#e84393',
+                            backgroundColor: '#e84393',
+                            pointRadius: 7,
+                            type: 'scatter'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { 
+                            type: 'linear', 
+                            min: 0, 
+                            max: 30, 
+                            title: { display: true, text: 'ราคาขนม (บาท)', font: { family: 'Prompt', size: 10 } },
+                            ticks: { font: { family: 'Fredoka', size: 10 } } 
+                        },
+                        y: { 
+                            min: 0, 
+                            max: 2400, 
+                            title: { display: true, text: 'รายได้ (บาท)', font: { family: 'Prompt', size: 10 } },
+                            ticks: { font: { family: 'Fredoka', size: 10 } } 
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function updateCalculations(price) {
+            price = parseInt(price);
+            const quantity = Math.max(0, 300 - 10 * price);
+            const revenue = Math.max(0, price * quantity);
+
+            document.getElementById('price-display').innerText = `${price} บาท`;
+            document.getElementById('quantity-result').innerText = `${quantity} ชิ้น`;
+            document.getElementById('quantity-formula').innerText = `300 - 10(${price})`;
+            document.getElementById('revenue-result').innerText = `${revenue.toLocaleString()} ฿`;
+
+            if (revenueChart) {
+                revenueChart.data.datasets[1].data = [{ x: price, y: revenue }];
+                revenueChart.update('none');
+            }
+        }
+
+        function startQuizTimer() {
+            clearInterval(quizTimerInterval);
+            quizTimeLeft = 60;
+            document.getElementById('quiz-timer').innerText = `${quizTimeLeft}s`;
+
+            quizTimerInterval = setInterval(() => {
+                quizTimeLeft--;
+                document.getElementById('quiz-timer').innerText = `${quizTimeLeft}s`;
+                if (quizTimeLeft <= 0) {
+                    clearInterval(quizTimerInterval);
+                    selectOption(0);
+                }
+            }, 1000);
+        }
+
+        function selectOption(optionIndex) {
+            clearInterval(quizTimerInterval);
+            const modal = document.getElementById('game-modal');
+            const ribbon = document.getElementById('modal-ribbon');
+            const stars = document.getElementById('modal-stars');
+            const scoreEl = document.getElementById('modal-score');
+
+            if (optionIndex === 5) {
+                playSound('correct');
+                ribbon.className = "w-full py-2 rounded-2xl text-white font-extrabold text-base tracking-wider uppercase shadow-md -mt-8 border-2 border-white bg-gradient-to-r from-emerald-400 to-green-500 font-fredoka";
+                ribbon.innerText = "LEVEL 01 PASSED!";
+                stars.innerHTML = `
+                    <i class="fa-solid fa-star text-amber-400 animate-bounce"></i>
+                    <i class="fa-solid fa-star text-amber-400 animate-bounce delay-100"></i>
+                    <i class="fa-solid fa-star text-amber-400 animate-bounce delay-200"></i>
+                `;
+                const calculatedScore = 1000 + (quizTimeLeft * 10);
+                scoreEl.innerText = calculatedScore.toLocaleString();
+                
+                currentCoins += calculatedScore;
+                document.getElementById('hud-coins').innerText = currentCoins.toLocaleString();
+            } else {
+                playSound('wrong');
+                ribbon.className = "w-full py-2 rounded-2xl text-white font-extrabold text-base tracking-wider uppercase shadow-md -mt-8 border-2 border-white bg-gradient-to-r from-rose-500 to-pink-600 font-fredoka";
+                ribbon.innerText = optionIndex === 0 ? "TIME'S UP!" : "TRY AGAIN!";
+                stars.innerHTML = `
+                    <i class="fa-regular fa-star text-slate-300"></i>
+                    <i class="fa-regular fa-star text-slate-300"></i>
+                    <i class="fa-regular fa-star text-slate-300"></i>
+                `;
+                scoreEl.innerText = "00";
+            }
+
+            modal.classList.remove('hidden');
+            if (window.MathJax) {
+                MathJax.typesetPromise([modal]);
+            }
+        }
+
+        function closeModal() {
+            playSound('click');
+            document.getElementById('game-modal').classList.add('hidden');
+            switchTab('lab');
+        }
+
+        function copyPromptText() {
+            playSound('click');
+            const text = document.getElementById('prompt-box').innerText;
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            const label = document.getElementById('copy-text');
+            label.innerText = "คัดลอกสำเร็จ!";
+            setTimeout(() => label.innerText = "คัดลอก Prompt", 2000);
+        }
+
+        window.onload = function() {
+            initChart();
+            const slider = document.getElementById('priceSlider');
+            slider.addEventListener('input', (e) => {
+                updateCalculations(e.target.value);
+                playSound('click');
+            });
+            updateCalculations(20);
+        }
+    </script>
+</body>
+</html>
